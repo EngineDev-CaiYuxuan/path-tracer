@@ -33,7 +33,7 @@ FetchContent_MakeAvailable(glm)
 
 add_subdirectory(src/vulkan-base)
 
-add_executable(path_tracer src/main.cpp)
+add_executable(path_tracer src/main.cpp "src/render/render.h" "src/render/render.cpp" "src/application.h" "src/application.cpp")
 
 target_link_libraries(path_tracer PRIVATE
     vulkan_base

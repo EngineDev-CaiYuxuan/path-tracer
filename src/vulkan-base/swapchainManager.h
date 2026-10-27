@@ -1,6 +1,6 @@
 #pragma once
 
-#include "VulkanContext.h"
+#include "vulkanContext.h"
 
 #include <iostream>
 
