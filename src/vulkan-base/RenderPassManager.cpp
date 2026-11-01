@@ -50,17 +50,17 @@ void RenderPassManager::cleanup()
 
 void RenderPassManager::cleanForRecreate()
 {
-	//ÇåÀí¶àÖØ²ÉÑù×ÊÔ´
+	//æ¸…ç†å¤šé‡é‡‡æ ·èµ„æº
 	vkDestroyImageView(device, colorImageView, nullptr);
 	vkDestroyImage(device, colorImage, nullptr);
 	vkFreeMemory(device, colorImageMemory, nullptr);
 
-	//ÇåÀíÉî¶È»º³åÇø
+	//æ¸…ç†æ·±åº¦ç¼“å†²åŒº
 	vkDestroyImageView(device, depthImageView, nullptr);
 	vkDestroyImage(device, depthImage, nullptr);
 	vkFreeMemory(device, depthImageMemory, nullptr);
 
-	//ÇåÀíÖ¡»º³å
+	//æ¸…ç†å¸§ç¼“å†²
 	for (auto framebuffer : swapChainFramebuffers)
 	{
 		vkDestroyFramebuffer(device, framebuffer, nullptr);
@@ -75,7 +75,7 @@ void RenderPassManager::createDepthResources()
 	depthImageView = createImageView(device, depthImage, depthFormat, VK_IMAGE_ASPECT_DEPTH_BIT, 1);
 }
 
-//´´½¨¶àÖØ²ÉÑùµÄÑÕÉ«»º³å
+//åˆ›å»ºå¤šé‡é‡‡æ ·çš„é¢œè‰²ç¼“å†²
 void RenderPassManager::createColorResources()
 {
 	VkFormat colorFormat = swapChainImageFormat;
@@ -83,20 +83,20 @@ void RenderPassManager::createColorResources()
 	colorImageView = createImageView(device, colorImage, colorFormat, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 }
 
-//äÖÈ¾¹ı³Ì¶ÔÏó
+//æ¸²æŸ“è¿‡ç¨‹å¯¹è±¡
 void RenderPassManager::createRenderPass()
 {
-	//ÑÕÉ«»º³å¸½¼ş
+	//é¢œè‰²ç¼“å†²é™„ä»¶
 	VkAttachmentDescription colorAttachment{};
 	colorAttachment.format = swapChainImageFormat;
-	colorAttachment.samples = msaaSamples;//1²ÉÑù
-	//ÈçºÎ´¦ÀíÎÄ¼ş
+	colorAttachment.samples = msaaSamples;//1é‡‡æ ·
+	//å¦‚ä½•å¤„ç†æ–‡ä»¶
 	colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
 	colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 	colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	colorAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;// ¶àÖØ²ÉÑùÍ¼Ïñ²»¿ÉÖ±½Ó³ÊÏÖ
+	colorAttachment.finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;// å¤šé‡é‡‡æ ·å›¾åƒä¸å¯ç›´æ¥å‘ˆç°
 
 	//
 	VkAttachmentDescription depthAttachment{};
@@ -109,7 +109,7 @@ void RenderPassManager::createRenderPass()
 	depthAttachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	depthAttachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-	//ÎªÑÕÉ«Ìí¼Ó½âÎö¸½¼ş
+	//ä¸ºé¢œè‰²æ·»åŠ è§£æé™„ä»¶
 	VkAttachmentDescription colorAttachmentResolve{};
 	colorAttachmentResolve.format = swapChainImageFormat;
 	colorAttachmentResolve.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -132,26 +132,26 @@ void RenderPassManager::createRenderPass()
 	VkAttachmentReference colorAttachmentResolveRef{};
 	colorAttachmentResolveRef.attachment = 2;
 	colorAttachmentResolveRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	//´´½¨×Ó¹ı³Ì
+	//åˆ›å»ºå­è¿‡ç¨‹
 	VkSubpassDescription subpass{};
 	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
 	subpass.colorAttachmentCount = 1;
-	subpass.pColorAttachments = &colorAttachmentRef;//Ö¸¶¨¶ÔÑÕÉ«¸½¼şµÄÒıÓÃ
-	subpass.pDepthStencilAttachment = &depthAttachmentRef;//Ö¸¶¨¶ÔÉî¶È¸½¼şµÄÒıÓÃ
+	subpass.pColorAttachments = &colorAttachmentRef;//æŒ‡å®šå¯¹é¢œè‰²é™„ä»¶çš„å¼•ç”¨
+	subpass.pDepthStencilAttachment = &depthAttachmentRef;//æŒ‡å®šå¯¹æ·±åº¦é™„ä»¶çš„å¼•ç”¨
 	subpass.pResolveAttachments = &colorAttachmentResolveRef;
 
 
-	//×ÓÍ¨µÀÒÀÀµ
+	//å­é€šé“ä¾èµ–
 	VkSubpassDependency dependency{};
-	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;//Ö¸¶¨ÒÀÀµÏî
-	dependency.dstSubpass = 0;//Ö¸¶¨±»ÒÀÀµË÷Òı
+	dependency.srcSubpass = VK_SUBPASS_EXTERNAL;//æŒ‡å®šä¾èµ–é¡¹
+	dependency.dstSubpass = 0;//æŒ‡å®šè¢«ä¾èµ–ç´¢å¼•
 	dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
 	dependency.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 	dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 	dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 
 
-	//´´½¨äÖÈ¾¹ı³Ì
+	//åˆ›å»ºæ¸²æŸ“è¿‡ç¨‹
 	std::array<VkAttachmentDescription, 3> attachments = { colorAttachment, depthAttachment, colorAttachmentResolve };
 	VkRenderPassCreateInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
@@ -159,7 +159,7 @@ void RenderPassManager::createRenderPass()
 	renderPassInfo.pAttachments = attachments.data();
 	renderPassInfo.subpassCount = 1;
 	renderPassInfo.pSubpasses = &subpass;
-	//Ö¸¶¨ÒÀÀµÏîÊı×é
+	//æŒ‡å®šä¾èµ–é¡¹æ•°ç»„
 	renderPassInfo.dependencyCount = 1;
 	renderPassInfo.pDependencies = &dependency;
 
@@ -168,12 +168,12 @@ void RenderPassManager::createRenderPass()
 	}
 }
 
-//´´½¨Ö¡»º³å¶ÔÏó
+//åˆ›å»ºå¸§ç¼“å†²å¯¹è±¡
 void RenderPassManager::createFramebuffers()
 {
-	swapChainFramebuffers.resize(swapChainImageViews.size());//µ÷ÕûÈİÆ÷´óĞ¡
+	swapChainFramebuffers.resize(swapChainImageViews.size());//è°ƒæ•´å®¹å™¨å¤§å°
 
-	//µü´úÍ¼ÏñÊÓÍ¼²¢´´½¨Ö¡»º³å
+	//è¿­ä»£å›¾åƒè§†å›¾å¹¶åˆ›å»ºå¸§ç¼“å†²
 	for (size_t i = 0; i < swapChainImageViews.size(); i++)
 	{
 		std::array<VkImageView, 3> attachments = {
@@ -184,7 +184,7 @@ void RenderPassManager::createFramebuffers()
 
 		VkFramebufferCreateInfo framebufferInfo{};
 		framebufferInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-		framebufferInfo.renderPass = renderPass;//Ö¸¶¨äÖÈ¾Í¨µÀ
+		framebufferInfo.renderPass = renderPass;//æŒ‡å®šæ¸²æŸ“é€šé“
 		framebufferInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
 		framebufferInfo.pAttachments = attachments.data();
 		framebufferInfo.width = swapChainExtent.width;

@@ -30,7 +30,7 @@ public:
 private:
 	const VkPhysicalDevice& physicalDevice;
 	const VkDevice& device;
-	const VkSurfaceKHR&  surface;
+	const VkSurfaceKHR& surface;
 	GLFWwindow* const window;
 
 	VkSwapchainKHR swapChain;

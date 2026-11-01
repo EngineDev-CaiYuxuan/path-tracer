@@ -15,16 +15,10 @@ void Application::run()
 void Application::mainLoop()
 {
 	auto window = vc->getWindow();
-	auto& framebufferResized = vc->getFrameBool();
 	auto& device = vc->getDevice();
 
 	while (!glfwWindowShouldClose(window)) {
 		glfwPollEvents();
-
-		if (framebufferResized) {
-			framebufferResized = false;
-			recreateSwapChain();
-		}
 
 		auto result = render->drawFrame();
 
@@ -64,7 +58,8 @@ void Application::initialize()
 	sym->initialize();
 	SyncDeps syd = sym->getSyncDeps();
 
-	render = new Render(rcd);
+	render = new Render(rcd, scd, cd, syd);
+	render->initialize();
 }
 
 void Application::cleanup()
@@ -90,13 +85,13 @@ void Application::cleanupSwapChain()
 }
 void Application::recreateSwapChain()
 {
-	//处理窗口最小化（暂停处理）
+	//澶勭悊绐楀彛鏈�灏忓寲锛堟殏鍋滃鐞嗭級
 	vc->recreateWindow();
 
-	//清理旧交换链
+	//娓呯悊鏃т氦鎹㈤摼
 	cleanupSwapChain();
 
-	//重新创建调用函数
+	//閲嶆柊鍒涘缓璋冪敤鍑芥暟
 	scm->createSwapChain();
 	scm->createImageViews();
 	rpm->createColorResources();

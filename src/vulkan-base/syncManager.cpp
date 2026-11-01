@@ -46,16 +46,16 @@ void SyncManager::createSyncObjects()
 
 	//
 	VkSemaphoreCreateInfo semaphoreInfo{};
-	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;//�ð汾������һ�������ֶ�
+	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;//该版本仅有这一个必填字段
 
-	//��дդ�������ṹ��
+	//填写栅栏创建结构体
 	VkFenceCreateInfo fenceInfo{};
 	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;//��ʼ״̬����Ϊ�Ѵ���
+	fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;//初始状态设置为已触发
 
 	for (int i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
 	{
-		//�����ź�����դ��
+		//创建信号量和栅栏
 		if (vkCreateSemaphore(device, &semaphoreInfo, nullptr, &imageAvailableSemaphores[i]) != VK_SUCCESS ||
 			vkCreateSemaphore(device, &semaphoreInfo, nullptr, &renderFinishedSemaphores[i]) != VK_SUCCESS ||
 			vkCreateFence(device, &fenceInfo, nullptr, &inFlightFences[i]) != VK_SUCCESS

@@ -13,6 +13,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 find_package(Vulkan REQUIRED)
 
+# ---- MSVC 编译选项（放在 target 之前）----
+if(MSVC)
+    add_compile_options(/utf-8 /Zc:__cplusplus)
+endif()
+
 include(FetchContent)
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
@@ -33,16 +38,50 @@ FetchContent_MakeAvailable(glm)
 
 add_subdirectory(src/vulkan-base)
 
-add_executable(path_tracer src/main.cpp "src/render/render.h" "src/render/render.cpp" "src/application.h" "src/application.cpp")
+add_executable(path_tracer
+    src/main.cpp
+    src/render/render.h
+    src/render/render.cpp
+    src/application.h
+    src/application.cpp
+)
 
 target_link_libraries(path_tracer PRIVATE
     vulkan_base
     Vulkan::Vulkan
 )
 
+# ---- 定位 glslc ----
+find_program(GLSL_COMPILER
+    NAMES glslc glslc.exe
+    HINTS $ENV{VULKAN_SDK}/Bin
+)
+if(NOT GLSL_COMPILER AND Vulkan_GLSLC_EXECUTABLE)
+    set(GLSL_COMPILER ${Vulkan_GLSLC_EXECUTABLE})
+endif()
+if(NOT GLSL_COMPILER)
+    message(FATAL_ERROR "glslc not found. Install Vulkan SDK or set VULKAN_SDK env var.")
+endif()
+
+# ---- shader 源路径 + 输出路径 ----
+set(SHADER_SRC ${CMAKE_SOURCE_DIR}/src/render/shader/shader.comp)
+set(SHADER_OUT $<TARGET_FILE_DIR:path_tracer>/shaders/comp.spv)
+
+# 首次配置时先检查源文件存在，早报错早发现
+if(NOT EXISTS ${SHADER_SRC})
+    message(FATAL_ERROR "shader source not found: ${SHADER_SRC}")
+endif()
+
+add_custom_command(TARGET path_tracer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+            $<TARGET_FILE_DIR:path_tracer>/shaders
+    COMMAND ${GLSL_COMPILER}
+            ${SHADER_SRC}
+            -o ${SHADER_OUT}
+    COMMENT "Compiling ${SHADER_SRC} -> comp.spv"
+    VERBATIM
+)
+
 if(MSVC)
-    # 源文件和执行字符集都用 UTF-8，消除 C4819
-    add_compile_options(/utf-8)
-    # 让 __cplusplus 宏正确报告 C++ 标准版本（glm 的 GLM_GTX_hash 提示靠它消除）
-    add_compile_options(/Zc:__cplusplus)
+    add_compile_options(/utf-8 /Zc:__cplusplus /wd4828)
 endif()

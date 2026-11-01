@@ -23,9 +23,8 @@ public:
 	void recreateWindow();
 	VkDevice& getDevice();
 	GLFWwindow* getWindow();
-	bool& getFrameBool();
 
-
+private:
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height);
 
 	void createInstance();
@@ -37,10 +36,10 @@ public:
 	std::vector<const char*> getRequiredExtensions();
 
 	static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(
-		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,//Ö¸¶¨ÏûÏ¢µÄÑÏÖØ³Ì¶È
-		VkDebugUtilsMessageTypeFlagsEXT messageType,//ÏûÏ¢ÀàĞÍ
-		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,//ÏûÏ¢ÏêÇé Ò»¸ö½á¹¹ÌåÖ¸Õë °üº¬¾ßÌåµÄ´íÎóĞÅÏ¢
-		void* pUserData//ÍòÄÜÖ¸Õë ´«ÓÃ»§×Ô¼ºµÄÊı¾İ ÔÚ»Øµ÷º¯ÊıÖĞÊ¹ÓÃ
+		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,//æŒ‡å®šæ¶ˆæ¯çš„ä¸¥é‡ç¨‹åº¦
+		VkDebugUtilsMessageTypeFlagsEXT messageType,//æ¶ˆæ¯ç±»å‹
+		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,//æ¶ˆæ¯è¯¦æƒ… ä¸€ä¸ªç»“æ„ä½“æŒ‡é’ˆ åŒ…å«å…·ä½“çš„é”™è¯¯ä¿¡æ¯
+		void* pUserData//ä¸‡èƒ½æŒ‡é’ˆ ä¼ ç”¨æˆ·è‡ªå·±çš„æ•°æ® åœ¨å›è°ƒå‡½æ•°ä¸­ä½¿ç”¨
 		);
 
 	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
@@ -58,7 +57,7 @@ public:
 	void createSurface();
 
 private:
-	/*Ê¹ÓÃºêÀ´¿ØÖÆÊÇ·ñÆôÓÃÑéÖ¤²ã*/
+	/*ä½¿ç”¨å®æ¥æ§åˆ¶æ˜¯å¦å¯ç”¨éªŒè¯å±‚*/
 #ifdef NDEBUG
 	const bool enableValidationLayers = false;
 #else
@@ -94,6 +93,4 @@ private:
 	GLFWwindow* window;
 
 	VkSampleCountFlagBits msaaSamples = VK_SAMPLE_COUNT_1_BIT;
-
-	bool framebufferResized = false;
 };

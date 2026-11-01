@@ -260,3 +260,7 @@ std::vector<char> readFile(const fs::path& filePath);
 
 VkShaderModule createShaderModule(const std::vector<char>& code, VkDevice device);
 
+void transitionImageLayout(VkCommandBuffer cmd, VkImage image,
+	VkImageLayout oldLayout, VkImageLayout newLayout,
+	VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage,
+	VkAccessFlags srcAccess, VkAccessFlags dstAccess);

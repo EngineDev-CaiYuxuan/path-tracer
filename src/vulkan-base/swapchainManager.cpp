@@ -38,20 +38,20 @@ void SwapchainManager::cleanup()
 
 void SwapchainManager::cleanForRecreate()
 {
-	//ÇåÀíÍ¼ÏñÊÓÍ¼
+	//æ¸…ç†å›¾åƒè§†å›¾
 	for (auto imageView : swapChainImageViews)
 	{
 		vkDestroyImageView(device, imageView, nullptr);
 	}
 
-	//Çå³ı½»»»Á´
+	//æ¸…é™¤äº¤æ¢é“¾
 	vkDestroySwapchainKHR(device, swapChain, nullptr);
 }
 
-//²éÕÒ×îÓÅ±íÃæ¸ñÊ½
+//æŸ¥æ‰¾æœ€ä¼˜è¡¨é¢æ ¼å¼
 VkSurfaceFormatKHR SwapchainManager::chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
 {
-	//±éÀú²¢ÅĞ¶Ï×î·ûºÏÒªÇóµÄ±íÃæ¸ñÊ½
+	//éå†å¹¶åˆ¤æ–­æœ€ç¬¦åˆè¦æ±‚çš„è¡¨é¢æ ¼å¼
 	for (const auto& availableFormat : availableFormats)
 	{
 		if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB
@@ -61,69 +61,69 @@ VkSurfaceFormatKHR SwapchainManager::chooseSwapSurfaceFormat(const std::vector<V
 		}
 	}
 
-	//Èç¹ûÃ»ÓĞÀíÏë¸ñÊ½ Í¨³£Ö±½ÓÑ¡ÔñµÚÒ»¸ö
+	//å¦‚æœæ²¡æœ‰ç†æƒ³æ ¼å¼ é€šå¸¸ç›´æ¥é€‰æ‹©ç¬¬ä¸€ä¸ª
 	return availableFormats[0];
 }
-//²éÕÒ×îÓÅ³ÊÏÖÄ£Ê½
+//æŸ¥æ‰¾æœ€ä¼˜å‘ˆç°æ¨¡å¼
 VkPresentModeKHR SwapchainManager::chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
 {
 	for (const auto& availablePresentMode : availablePresentModes)
 	{
-		if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)//ÈıÖØ»º³å
+		if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)//ä¸‰é‡ç¼“å†²
 		{
 			return availablePresentMode;
 		}
 	}
 
-	return VK_PRESENT_MODE_FIFO_KHR;//´¹Ö±Í¬²½
+	return VK_PRESENT_MODE_FIFO_KHR;//å‚ç›´åŒæ­¥
 }
-//²éÕÒ×îÓÅÑ¡Ôñ·¶Î§
+//æŸ¥æ‰¾æœ€ä¼˜é€‰æ‹©èŒƒå›´
 VkExtent2D SwapchainManager::chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities)
 {
 	if (capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max())
 	{
-		return capabilities.currentExtent;//²»ĞèÒª×Ô¶¨ÒåÊ±Ö±½Ó·µ»Ø
+		return capabilities.currentExtent;//ä¸éœ€è¦è‡ªå®šä¹‰æ—¶ç›´æ¥è¿”å›
 	}
-	else//´°¿Ú¹ÜÀíÆ÷ÔÊĞíÈÎÒâ·Ö±æÂÊÊ±
+	else//çª—å£ç®¡ç†å™¨å…è®¸ä»»æ„åˆ†è¾¨ç‡æ—¶
 	{
-		//»ñÈ¡´°¿ÚµÄÊµ¼ÊÏñËØ·Ö±æÂÊ£¨Ò²¾ÍÊÇÖ¡»º³åÇøµÄ´óĞ¡£©
+		//è·å–çª—å£çš„å®é™…åƒç´ åˆ†è¾¨ç‡ï¼ˆä¹Ÿå°±æ˜¯å¸§ç¼“å†²åŒºçš„å¤§å°ï¼‰
 		int width, height;
 		glfwGetFramebufferSize(window, &width, &height);
 
-		//Ìî³ä½á¹¹Ìå
+		//å¡«å……ç»“æ„ä½“
 		VkExtent2D actualExtent = {
 			static_cast<uint32_t>(width),
 			static_cast<uint32_t>(height)
 		};
 
-		//ÏŞÖÆ·Ö±æÂÊÔÚÏÔ¿¨ÔÊĞí·¶Î§ÄÚ
+		//é™åˆ¶åˆ†è¾¨ç‡åœ¨æ˜¾å¡å…è®¸èŒƒå›´å†…
 		actualExtent.width = std::clamp(actualExtent.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
 		actualExtent.height = std::clamp(actualExtent.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
 		return actualExtent;
 	}
 }
-//´´½¨½»»»Á´
+//åˆ›å»ºäº¤æ¢é“¾
 void SwapchainManager::createSwapChain()
 {
-	//»ñÈ¡½»»»Á´Ï¸½Ú
+	//è·å–äº¤æ¢é“¾ç»†èŠ‚
 	SwapChainDetails swapChainSupport = querySwapChainSupported(physicalDevice, surface);
 
-	//²éÕÒ×îÓÅ½»»»Á´²ÎÊı
+	//æŸ¥æ‰¾æœ€ä¼˜äº¤æ¢é“¾å‚æ•°
 	VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
 	VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
 	VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
 
-	//ÉèÖÃ½»»»Á´Í¼ÏñÊıÁ¿ ½¨ÒéÖÁÉÙÎª×îĞ¡¿ÉÔËĞĞÊıÁ¿+1
+	//è®¾ç½®äº¤æ¢é“¾å›¾åƒæ•°é‡ å»ºè®®è‡³å°‘ä¸ºæœ€å°å¯è¿è¡Œæ•°é‡+1
 	uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1;
-	//ÑéÖ¤Í¼ÏñÊıÁ¿²»³¬¹ı×î´óÖµ£¨´Ë´¦0ÎªÌØÊâÖµ ±íÊ¾Ã»ÓĞ×î´óÖµ£©
+	//éªŒè¯å›¾åƒæ•°é‡ä¸è¶…è¿‡æœ€å¤§å€¼ï¼ˆæ­¤å¤„0ä¸ºç‰¹æ®Šå€¼ è¡¨ç¤ºæ²¡æœ‰æœ€å¤§å€¼ï¼‰
 	if (swapChainSupport.capabilities.maxImageCount > 0
 		&& imageCount > swapChainSupport.capabilities.maxImageCount)
 	{
 		imageCount = swapChainSupport.capabilities.maxImageCount;
 	}
 
-	//ÌîĞ´´óĞÍ½á¹¹
+	//å¡«å†™å¤§å‹ç»“æ„
 	VkSwapchainCreateInfoKHR createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	createInfo.surface = surface;
@@ -132,27 +132,27 @@ void SwapchainManager::createSwapChain()
 	createInfo.imageColorSpace = surfaceFormat.colorSpace;
 	createInfo.imageExtent = extent;
 	createInfo.imageArrayLayers = 1;
-	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;//¶ÔÍ¼ÏñÓ¦ÓÃÄ³ÖÖ±ä»»
-	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;//ÊÇ·ñÊ¹ÓÃalphaÍ¨µÀ
+	createInfo.preTransform = swapChainSupport.capabilities.currentTransform;//å¯¹å›¾åƒåº”ç”¨æŸç§å˜æ¢
+	createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;//æ˜¯å¦ä½¿ç”¨alphaé€šé“
 	createInfo.presentMode = presentMode;
-	createInfo.clipped = VK_TRUE;//ÊÇ·ñ²Ã¼ô±»ÆäËû´°¿ÚÕÚµ²µÄÏñËØµÄÑÕÉ« Í¨³£Ñ¡Ôñtrue
-	createInfo.oldSwapchain = VK_NULL_HANDLE;//¾É½»»»Á´µÄÒıÓÃ ÓÃÓÚ´´½¨ĞÂ½»»»Á´Ê±´«µİ×Ö¶Î
+	createInfo.clipped = VK_TRUE;//æ˜¯å¦è£å‰ªè¢«å…¶ä»–çª—å£é®æŒ¡çš„åƒç´ çš„é¢œè‰² é€šå¸¸é€‰æ‹©true
+	createInfo.oldSwapchain = VK_NULL_HANDLE;//æ—§äº¤æ¢é“¾çš„å¼•ç”¨ ç”¨äºåˆ›å»ºæ–°äº¤æ¢é“¾æ—¶ä¼ é€’å­—æ®µ
 
-	//Ö¸¶¨ÈçºÎ´¦Àí¶à¸ö¶ÓÁĞ×åÖ®¼äÊ¹ÓÃµÄ½»»»Á´Í¼Ïñ
-	QueueFamilyIndices indices = findQueueFamilies(physicalDevice, surface);//»ñÈ¡¶ÓÁĞ×å
+	//æŒ‡å®šå¦‚ä½•å¤„ç†å¤šä¸ªé˜Ÿåˆ—æ—ä¹‹é—´ä½¿ç”¨çš„äº¤æ¢é“¾å›¾åƒ
+	QueueFamilyIndices indices = findQueueFamilies(physicalDevice, surface);//è·å–é˜Ÿåˆ—æ—
 	uint32_t queueFamilyIndices[] = {
 		indices.graphicsAndComputeFamily.value(),
 		indices.presentFamily.value()
 	};
-	if (indices.graphicsAndComputeFamily != indices.presentFamily)//µ±¶ÓÁĞ×å²»ÊÇÍ¬Ò»¸öÊ±
+	if (indices.graphicsAndComputeFamily != indices.presentFamily)//å½“é˜Ÿåˆ—æ—ä¸æ˜¯åŒä¸€ä¸ªæ—¶
 	{
-		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;//Ò»¸öÍ¼ÏñÒ»´ÎÖ»ÓÉÒ»¸ö¶ÓÁĞ×åÓµÓĞ ĞèÒªÏÔÊ½ÒÆ½»ËùÓĞÈ¨ ĞÔÄÜ×î¼Ñ
+		createInfo.imageSharingMode = VK_SHARING_MODE_CONCURRENT;//ä¸€ä¸ªå›¾åƒä¸€æ¬¡åªç”±ä¸€ä¸ªé˜Ÿåˆ—æ—æ‹¥æœ‰ éœ€è¦æ˜¾å¼ç§»äº¤æ‰€æœ‰æƒ æ€§èƒ½æœ€ä½³
 		createInfo.queueFamilyIndexCount = 2;
 		createInfo.pQueueFamilyIndices = queueFamilyIndices;
 	}
-	else//¶ÓÁĞ×åÎªÍ¬Ò»¸öÊ±
+	else//é˜Ÿåˆ—æ—ä¸ºåŒä¸€ä¸ªæ—¶
 	{
 		createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 		createInfo.queueFamilyIndexCount = 0;
@@ -164,7 +164,7 @@ void SwapchainManager::createSwapChain()
 		throw std::runtime_error("failed to create swap chain!");
 	}
 
-	//¼ìË÷½»»»Á´Í¼Ïñ
+	//æ£€ç´¢äº¤æ¢é“¾å›¾åƒ
 	vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
 	swapChainImages.resize(imageCount);
 	vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
@@ -173,10 +173,10 @@ void SwapchainManager::createSwapChain()
 	swapChainExtent = extent;
 }
 
-//Îª½»»»Á´ÖĞµÄÃ¿¸öÍ¼Ïñ´´½¨Í¼ÏñÊÓÍ¼
+//ä¸ºäº¤æ¢é“¾ä¸­çš„æ¯ä¸ªå›¾åƒåˆ›å»ºå›¾åƒè§†å›¾
 void SwapchainManager::createImageViews()
 {
-	//µ÷ÕûÁĞ±í´óĞ¡
+	//è°ƒæ•´åˆ—è¡¨å¤§å°
 	swapChainImageViews.resize(swapChainImages.size());
 
 	for (uint32_t i = 0; i < swapChainImages.size(); i++) {

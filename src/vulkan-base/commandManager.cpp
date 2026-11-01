@@ -26,24 +26,24 @@ CommandDeps CommandManager::getCommandDeps()
 	return cd;
 }
 
-//´´½¨ÃüÁî³Ø
+//åˆ›å»ºå‘½ä»¤æ± 
 void CommandManager::createCommandPool()
 {
 	QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice, surface);
 
-	//´´½¨ÃüÁî³Ø½á¹¹Ìå
+	//åˆ›å»ºå‘½ä»¤æ± ç»“æ„ä½“
 	VkCommandPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;//ÃüÁî³Ø±êÖ¾ ¹²Á½ÖÖ ´Ë±êÖ¾±íÊ¾ÔÊĞíµ¥¶ÀÖØĞÂ¼ÇÂ¼ÃüÁî»º³åÇø
-	poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsAndComputeFamily.value();//¼ÇÂ¼»æÍ¼ÃüÁîµÄÃüÁî³Ø·ÖÅäµ½»æÍ¼¶ÓÁĞÉÏ
+	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;//å‘½ä»¤æ± æ ‡å¿— å…±ä¸¤ç§ æ­¤æ ‡å¿—è¡¨ç¤ºå…è®¸å•ç‹¬é‡æ–°è®°å½•å‘½ä»¤ç¼“å†²åŒº
+	poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsAndComputeFamily.value();//è®°å½•ç»˜å›¾å‘½ä»¤çš„å‘½ä»¤æ± åˆ†é…åˆ°ç»˜å›¾é˜Ÿåˆ—ä¸Š
 
-	//Ìá½»´´½¨
+	//æäº¤åˆ›å»º
 	if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create command pool!");
 	}
 }
-//´ÓÃüÁî³ØÖĞ·ÖÅäµ¥¸öÃüÁî»º³åÇø
+//ä»å‘½ä»¤æ± ä¸­åˆ†é…å•ä¸ªå‘½ä»¤ç¼“å†²åŒº
 void CommandManager::createCommandBuffers()
 {
 	commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
@@ -51,11 +51,11 @@ void CommandManager::createCommandBuffers()
 	//
 	VkCommandBufferAllocateInfo allocInfo{};
 	allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	allocInfo.commandPool = commandPool;//°ó¶¨ÃüÁî³Ø×Ó
-	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;//Ö¸¶¨·ÖÅäµÄÃüÁî»º³åÇøÊÇÖ÷»º³åÇø»¹ÊÇ¸¨Öú»º³åÇø
-	allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();//·ÖÅäÃüÁî»º³åÇøµÄÊıÁ¿
+	allocInfo.commandPool = commandPool;//ç»‘å®šå‘½ä»¤æ± å­
+	allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;//æŒ‡å®šåˆ†é…çš„å‘½ä»¤ç¼“å†²åŒºæ˜¯ä¸»ç¼“å†²åŒºè¿˜æ˜¯è¾…åŠ©ç¼“å†²åŒº
+	allocInfo.commandBufferCount = (uint32_t)commandBuffers.size();//åˆ†é…å‘½ä»¤ç¼“å†²åŒºçš„æ•°é‡
 
-	//·ÖÅäÃüÁî»º³åÇø
+	//åˆ†é…å‘½ä»¤ç¼“å†²åŒº
 	if (vkAllocateCommandBuffers(device, &allocInfo, commandBuffers.data()) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to allocate command buffers!");

@@ -32,7 +32,7 @@ private:
 	const std::vector<VkImageView>& swapChainImageViews;
 	const std::vector<VkImage>&	swapChainImages;
 
-	//深度缓冲资源
+	//娣卞害缂撳啿璧勬簮
 	VkImage depthImage;
 	VkDeviceMemory depthImageMemory;
 	VkImageView depthImageView;
