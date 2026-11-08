@@ -14,12 +14,16 @@ public:
 private:
 	void createStorageImage();
 
+	void createCameraUBO();
+
 	void createDescriptorSetLayout();
 	void createDescriptorPool();
 	void createDescriptorSets();
 
 	void createComputePipeline();
 
+private:
+	void updateCameraUBO();
 
 
 private:
@@ -42,9 +46,14 @@ private:
 private:
 	uint32_t currentFrame = 0;
 
+	void* cameraUBOMapped = nullptr;
+
 	VkImage storageImage;
 	VkDeviceMemory storageImageMemory;
 	VkImageView storageImageView;
+
+	VkBuffer cameraUBO;
+	VkDeviceMemory cameraUBOMemory;
 
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorPool descriptorPool;
@@ -52,4 +61,14 @@ private:
 
 	VkPipelineLayout pipelineLayout;
 	VkPipeline pipeline;
+};
+
+
+struct CameraUBO
+{
+	glm::vec4 camPos;
+	glm::vec4 camForward;
+	glm::vec4 camRight;
+	glm::vec4 camUp;
+	glm::vec4 params;
 };

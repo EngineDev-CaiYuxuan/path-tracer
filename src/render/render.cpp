@@ -15,6 +15,8 @@ void Render::initialize()
 {
 	createStorageImage();
 
+	createCameraUBO();
+
 	createDescriptorSetLayout();
 	createDescriptorPool();
 	createDescriptorSets();
@@ -38,6 +40,8 @@ DrawFrameResult Render::drawFrame()
 	vkResetFences(device, 1, &inFlightFences[currentFrame]);
 	vkResetCommandBuffer(commandBuffers[currentFrame], 0);
 
+
+	updateCameraUBO();
 
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -133,6 +137,10 @@ void Render::cleanup()
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
+	vkUnmapMemory(device, cameraUBOMemory);
+	vkFreeMemory(device, cameraUBOMemory, nullptr);
+	vkDestroyBuffer(device, cameraUBO, nullptr);
+
 	vkDestroyImageView(device, storageImageView, nullptr);
 	vkDestroyImage(device, storageImage, nullptr);
 	vkFreeMemory(device, storageImageMemory, nullptr);
@@ -182,18 +190,65 @@ void Render::createStorageImage()
 	storageImageView = createImageView(device, storageImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 }
 
+void Render::createCameraUBO()
+{
+	VkDeviceSize bufferSize = sizeof(CameraUBO);
+
+	VkBufferCreateInfo createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	createInfo.size = bufferSize;
+	createInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+	if (vkCreateBuffer(device, &createInfo, nullptr, &cameraUBO) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create camera ubo buffer!");
+	}
+
+
+	VkMemoryRequirements memReqs;
+	vkGetBufferMemoryRequirements(device, cameraUBO, &memReqs);
+
+	VkMemoryAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memReqs.size;
+	allocInfo.memoryTypeIndex = findMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, physicalDevice);
+	if (vkAllocateMemory(device, &allocInfo, nullptr, &cameraUBOMemory) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to allocate camera ubo memory!");
+	}
+	
+	if (vkBindBufferMemory(device, cameraUBO, cameraUBOMemory, 0) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to bind camera ubo buffer memory!");
+	}
+
+	if (vkMapMemory(device, cameraUBOMemory, 0, sizeof(cameraUBO), 0, &cameraUBOMapped) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to map camera ubo memory!");
+	}
+}
+
 void Render::createDescriptorSetLayout()
 {
 	VkDescriptorSetLayoutBinding imageBinding{};
-	imageBinding.binding = 1;
+	imageBinding.binding = 0;
 	imageBinding.descriptorCount = 1;
 	imageBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 	imageBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
+	VkDescriptorSetLayoutBinding uboBinding{};
+	uboBinding.binding = 1;
+	uboBinding.descriptorCount = 1;
+	uboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	uboBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+	std::vector<VkDescriptorSetLayoutBinding> bindings = { imageBinding, uboBinding };
+
 	VkDescriptorSetLayoutCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	createInfo.bindingCount = 1;
-	createInfo.pBindings = &imageBinding;
+	createInfo.bindingCount = 2;
+	createInfo.pBindings = bindings.data();
 	if (vkCreateDescriptorSetLayout(device, &createInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to create descriptor set layout!");
@@ -202,14 +257,16 @@ void Render::createDescriptorSetLayout()
 
 void Render::createDescriptorPool()
 {
-	VkDescriptorPoolSize poolSize{};
-	poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-	poolSize.descriptorCount = 1 * MAX_FRAMES_IN_FLIGHT;
+	std::array<VkDescriptorPoolSize, 2> poolSizes{};
+	poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	poolSizes[0].descriptorCount = 1 * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	poolSizes[1].descriptorCount = 1 * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
 	VkDescriptorPoolCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	createInfo.poolSizeCount = 1;
-	createInfo.pPoolSizes = &poolSize;
+	createInfo.poolSizeCount = 2;
+	createInfo.pPoolSizes = poolSizes.data();
 	createInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 	if (vkCreateDescriptorPool(device, &createInfo, nullptr, &descriptorPool) != VK_SUCCESS)
 	{
@@ -238,19 +295,42 @@ void Render::createDescriptorSets()
 		imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 		imageInfo.imageView = storageImageView;
 
-		VkWriteDescriptorSet descriptorWrite{};
-		descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrite.dstSet = descriptorSets[i];
-		descriptorWrite.dstBinding = 1;
-		descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-		descriptorWrite.descriptorCount = 1;
-		descriptorWrite.pImageInfo = &imageInfo;
+		VkDescriptorBufferInfo uboInfo{};
+		uboInfo.buffer = cameraUBO;
+		uboInfo.range = sizeof(CameraUBO);
+		
+		std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
 
-		vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[0].dstSet = descriptorSets[i];
+		descriptorWrites[0].dstBinding = 0;
+		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+		descriptorWrites[0].descriptorCount = 1;
+		descriptorWrites[0].pImageInfo = &imageInfo;
+
+		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[1].dstSet = descriptorSets[i];
+		descriptorWrites[1].dstBinding = 1;
+		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[1].descriptorCount = 1;
+		descriptorWrites[1].pBufferInfo = &uboInfo;
+
+		vkUpdateDescriptorSets(device, 2, descriptorWrites.data(), 0, nullptr);
 	}
 }
 
+void Render::updateCameraUBO()
+{
+	float fovTanHalf = std::tan(glm::radians(60.0f) * 0.5f);
+	float aspect = (float)swapChainExtent.width / (float)swapChainExtent.height;
+	uint32_t frameIndex = 0;
 
-// auxiliary functions
-//
+	CameraUBO ubo{};
+	ubo.camPos = glm::vec4(0, 0, 3, 0);
+	ubo.camForward = glm::vec4(0, 0, -1, 0);
+	ubo.camRight = glm::vec4(1, 0, 0, 0);
+	ubo.camUp = glm::vec4(0, 1, 0, 0);
+	ubo.params = glm::vec4(fovTanHalf, aspect, (float)frameIndex, 0);
 
+	memcpy(cameraUBOMapped, &ubo, sizeof(ubo));
+}
