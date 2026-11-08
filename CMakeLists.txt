@@ -15,7 +15,7 @@ find_package(Vulkan REQUIRED)
 
 # ---- MSVC 编译选项（放在 target 之前）----
 if(MSVC)
-    add_compile_options(/utf-8 /Zc:__cplusplus)
+    add_compile_options(/utf-8 /Zc:__cplusplus /wd4828)
 endif()
 
 include(FetchContent)
@@ -64,7 +64,7 @@ if(NOT GLSL_COMPILER)
 endif()
 
 # ---- shader 源路径 + 输出路径 ----
-set(SHADER_SRC ${CMAKE_SOURCE_DIR}/src/render/shader/shader.comp)
+set(SHADER_SRC ${CMAKE_SOURCE_DIR}/src/render/shaders/shader.comp)
 set(SHADER_OUT $<TARGET_FILE_DIR:path_tracer>/shaders/comp.spv)
 
 # 首次配置时先检查源文件存在，早报错早发现
@@ -81,7 +81,3 @@ add_custom_command(TARGET path_tracer POST_BUILD
     COMMENT "Compiling ${SHADER_SRC} -> comp.spv"
     VERBATIM
 )
-
-if(MSVC)
-    add_compile_options(/utf-8 /Zc:__cplusplus /wd4828)
-endif()
