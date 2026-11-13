@@ -64,8 +64,9 @@ if(NOT GLSL_COMPILER)
 endif()
 
 # ---- shader 源路径 + 输出路径 ----
-set(SHADER_SRC ${CMAKE_SOURCE_DIR}/src/render/shaders/shader.comp)
-set(SHADER_OUT $<TARGET_FILE_DIR:path_tracer>/shaders/comp.spv)
+# ---- 编译 Shader ----
+set(SHADER_SRC ${CMAKE_SOURCE_DIR}/assets/shaders/shader.comp)
+set(SHADER_OUT $<TARGET_FILE_DIR:path_tracer>/assets/shaders/comp.spv) # 输出到 exe 同级的 assets/shaders/
 
 # 首次配置时先检查源文件存在，早报错早发现
 if(NOT EXISTS ${SHADER_SRC})
@@ -74,10 +75,18 @@ endif()
 
 add_custom_command(TARGET path_tracer POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E make_directory
-            $<TARGET_FILE_DIR:path_tracer>/shaders
+            $<TARGET_FILE_DIR:path_tracer>/assets/shaders
     COMMAND ${GLSL_COMPILER}
             ${SHADER_SRC}
             -o ${SHADER_OUT}
-    COMMENT "Compiling ${SHADER_SRC} -> comp.spv"
+    COMMENT "Compiling shader.comp -> comp.spv"
     VERBATIM
+)
+
+# ---- 拷贝模型 ----
+add_custom_command(TARGET path_tracer POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${CMAKE_SOURCE_DIR}/assets/models
+            $<TARGET_FILE_DIR:path_tracer>/assets/models
+    COMMENT "Copying models to output directory"
 )

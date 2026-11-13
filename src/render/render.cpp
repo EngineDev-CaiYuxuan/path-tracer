@@ -14,8 +14,9 @@ Render::Render(const RenderContextDeps& rcd, const SwapchainDeps& scd, const Com
 void Render::initialize()
 {
 	createStorageImage();
-
 	createCameraUBO();
+	createTriangleBuffer();
+	createSceneInfoUBO();
 
 	createDescriptorSetLayout();
 	createDescriptorPool();
@@ -137,6 +138,12 @@ void Render::cleanup()
 	vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 	vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
+	vkFreeMemory(device, triangleBufferMemory, nullptr);
+	vkDestroyBuffer(device, triangleBuffer, nullptr);
+
+	vkFreeMemory(device, sceneInfoUBOMemory, nullptr);
+	vkDestroyBuffer(device, sceneInfoUBO, nullptr);
+
 	vkUnmapMemory(device, cameraUBOMemory);
 	vkFreeMemory(device, cameraUBOMemory, nullptr);
 	vkDestroyBuffer(device, cameraUBO, nullptr);
@@ -146,12 +153,13 @@ void Render::cleanup()
 	vkFreeMemory(device, storageImageMemory, nullptr);
 }
 
+
 // private:
 
 void Render::createComputePipeline()
 {
 	const fs::path baseDir = GetExeDirectory();
-	const fs::path compPath = baseDir / "shaders" / "comp.spv";
+	const fs::path compPath = baseDir/ "assets" / "shaders" / "comp.spv";
 	auto computeShaderCode = readFile(compPath);
 	VkShaderModule compShaderModule = createShaderModule(computeShaderCode, device);
 
@@ -223,10 +231,93 @@ void Render::createCameraUBO()
 		throw std::runtime_error("failed to bind camera ubo buffer memory!");
 	}
 
-	if (vkMapMemory(device, cameraUBOMemory, 0, sizeof(cameraUBO), 0, &cameraUBOMapped) != VK_SUCCESS)
+	if (vkMapMemory(device, cameraUBOMemory, 0, sizeof(CameraUBO), 0, &cameraUBOMapped) != VK_SUCCESS)
 	{
 		throw std::runtime_error("failed to map camera ubo memory!");
 	}
+}
+
+void Render::createTriangleBuffer()
+{
+	std::filesystem::path modelPath = GetExeDirectory() / "assets" / "models" / "cube.obj";
+	triangles = loadModel(modelPath.string());
+
+
+	VkDeviceSize bufferSize = sizeof(Triangle) * triangles.size();
+
+	VkBufferCreateInfo bufferInfo{};
+	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferInfo.size = bufferSize;
+	bufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	if (vkCreateBuffer(device, &bufferInfo, nullptr, &triangleBuffer) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create triangle buffer!");
+	}
+
+	VkMemoryRequirements memReqs;
+	vkGetBufferMemoryRequirements(device, triangleBuffer, &memReqs);
+
+	VkMemoryAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memReqs.size;
+	allocInfo.memoryTypeIndex = findMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, physicalDevice);
+	if (vkAllocateMemory(device, &allocInfo, nullptr, &triangleBufferMemory) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to allocate triangle buffer memory!");
+	}
+	if (vkBindBufferMemory(device, triangleBuffer, triangleBufferMemory, 0) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to bind triangle buffer memory!");
+	}
+
+	void* mapped = nullptr;
+	vkMapMemory(device, triangleBufferMemory, 0, bufferSize, 0, &mapped);
+	memcpy(mapped, triangles.data(), bufferSize);
+	vkUnmapMemory(device, triangleBufferMemory);
+}
+
+void Render::createSceneInfoUBO()
+{
+	SceneInfo sceneInfo;
+	sceneInfo.triangleCount = triangles.size();
+
+
+	VkDeviceSize bufferSize = sizeof(SceneInfo);
+
+	VkBufferCreateInfo bufferInfo{};
+	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferInfo.size = bufferSize;
+	bufferInfo.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	if (vkCreateBuffer(device, &bufferInfo, nullptr, &sceneInfoUBO) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create sence info ubo!");
+	}
+
+
+	VkMemoryRequirements memReqs{};
+	vkGetBufferMemoryRequirements(device, sceneInfoUBO, &memReqs);
+
+	VkMemoryAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memReqs.size;
+	allocInfo.memoryTypeIndex = findMemoryType(memReqs.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, physicalDevice);
+	if (vkAllocateMemory(device, &allocInfo, nullptr, &sceneInfoUBOMemory) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to allocate sence info buffer memory!");
+	}
+
+	if (vkBindBufferMemory(device, sceneInfoUBO, sceneInfoUBOMemory, 0) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to bind sence info buffer memory!");
+	}
+
+
+	void* mapped = nullptr;
+	vkMapMemory(device, sceneInfoUBOMemory, 0, bufferSize, 0, &mapped);
+	memcpy(mapped, &sceneInfo, sizeof(sceneInfo));
+	vkUnmapMemory(device, sceneInfoUBOMemory);
 }
 
 void Render::createDescriptorSetLayout()
@@ -243,11 +334,23 @@ void Render::createDescriptorSetLayout()
 	uboBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	uboBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
 
-	std::vector<VkDescriptorSetLayoutBinding> bindings = { imageBinding, uboBinding };
+	VkDescriptorSetLayoutBinding senceInfoUBOBinding{};
+	senceInfoUBOBinding.binding = 2;
+	senceInfoUBOBinding.descriptorCount = 1;
+	senceInfoUBOBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	senceInfoUBOBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+	VkDescriptorSetLayoutBinding triangleBufferBinding{};
+	triangleBufferBinding.binding = 3;
+	triangleBufferBinding.descriptorCount = 1;
+	triangleBufferBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	triangleBufferBinding.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+
+	std::vector<VkDescriptorSetLayoutBinding> bindings = { imageBinding, uboBinding, senceInfoUBOBinding, triangleBufferBinding };
 
 	VkDescriptorSetLayoutCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-	createInfo.bindingCount = 2;
+	createInfo.bindingCount = bindings.size();
 	createInfo.pBindings = bindings.data();
 	if (vkCreateDescriptorSetLayout(device, &createInfo, nullptr, &descriptorSetLayout) != VK_SUCCESS)
 	{
@@ -257,15 +360,19 @@ void Render::createDescriptorSetLayout()
 
 void Render::createDescriptorPool()
 {
-	std::array<VkDescriptorPoolSize, 2> poolSizes{};
+	std::array<VkDescriptorPoolSize, 4> poolSizes{};
 	poolSizes[0].type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
 	poolSizes[0].descriptorCount = 1 * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 	poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 	poolSizes[1].descriptorCount = 1 * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	poolSizes[2].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	poolSizes[2].descriptorCount = 1 * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
+	poolSizes[3].type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	poolSizes[3].descriptorCount = 1 * static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 
 	VkDescriptorPoolCreateInfo createInfo{};
 	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-	createInfo.poolSizeCount = 2;
+	createInfo.poolSizeCount = poolSizes.size();
 	createInfo.pPoolSizes = poolSizes.data();
 	createInfo.maxSets = static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 	if (vkCreateDescriptorPool(device, &createInfo, nullptr, &descriptorPool) != VK_SUCCESS)
@@ -298,8 +405,16 @@ void Render::createDescriptorSets()
 		VkDescriptorBufferInfo uboInfo{};
 		uboInfo.buffer = cameraUBO;
 		uboInfo.range = sizeof(CameraUBO);
+
+		VkDescriptorBufferInfo sceneInfo{};
+		sceneInfo.buffer = sceneInfoUBO;
+		sceneInfo.range = sizeof(SceneInfo);
+
+		VkDescriptorBufferInfo triangleInfo{};
+		triangleInfo.buffer = triangleBuffer;
+		triangleInfo.range = VK_WHOLE_SIZE;
 		
-		std::array<VkWriteDescriptorSet, 2> descriptorWrites{};
+		std::array<VkWriteDescriptorSet, 4> descriptorWrites{};
 
 		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descriptorWrites[0].dstSet = descriptorSets[i];
@@ -315,7 +430,21 @@ void Render::createDescriptorSets()
 		descriptorWrites[1].descriptorCount = 1;
 		descriptorWrites[1].pBufferInfo = &uboInfo;
 
-		vkUpdateDescriptorSets(device, 2, descriptorWrites.data(), 0, nullptr);
+		descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[2].dstSet = descriptorSets[i];
+		descriptorWrites[2].dstBinding = 2;
+		descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descriptorWrites[2].descriptorCount = 1;
+		descriptorWrites[2].pBufferInfo = &sceneInfo;
+
+		descriptorWrites[3].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descriptorWrites[3].dstSet = descriptorSets[i];
+		descriptorWrites[3].dstBinding = 3;
+		descriptorWrites[3].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+		descriptorWrites[3].descriptorCount = 1;
+		descriptorWrites[3].pBufferInfo = &triangleInfo;
+
+		vkUpdateDescriptorSets(device, descriptorWrites.size(), descriptorWrites.data(), 0, nullptr);
 	}
 }
 
@@ -326,11 +455,71 @@ void Render::updateCameraUBO()
 	uint32_t frameIndex = 0;
 
 	CameraUBO ubo{};
-	ubo.camPos = glm::vec4(0, 0, 3, 0);
-	ubo.camForward = glm::vec4(0, 0, -1, 0);
-	ubo.camRight = glm::vec4(1, 0, 0, 0);
-	ubo.camUp = glm::vec4(0, 1, 0, 0);
+	ubo.camPos = glm::vec4(63.7f, 105.0f, 92.6f, 0.0f);
+	ubo.camForward = glm::vec4(-0.577f, -0.577f, -0.577f, 0.0f);
+	ubo.camRight = glm::vec4(0.707f, 0.0f, -0.707f, 0.0f);
+	ubo.camUp = glm::vec4(-0.408f, 0.816f, -0.408f, 0.0f);
 	ubo.params = glm::vec4(fovTanHalf, aspect, (float)frameIndex, 0);
 
 	memcpy(cameraUBOMapped, &ubo, sizeof(ubo));
+}
+
+
+// auxiliary functions
+
+std::vector<Triangle> Render::loadModel(const std::string& path)
+{
+	tinyobj::attrib_t attrib;
+	std::vector<tinyobj::shape_t> shapes;
+	std::vector<tinyobj::material_t> materials;
+	std::string warn, err;
+
+	if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str()))
+	{
+		throw std::runtime_error("failed to load model!" + warn + err);
+	}
+
+
+	std::vector<Triangle> triangles;
+
+	for (const auto& shape : shapes)
+	{
+		for (size_t i = 0; i < shape.mesh.indices.size(); i += 3)
+		{
+			Triangle tri;
+
+			for (int j = 0; j < 3; j++)
+			{
+				tinyobj::index_t idx = shape.mesh.indices[i + j];
+				int vi = idx.vertex_index;
+
+				tri.v[j] = { attrib.vertices[vi * 3 + 0], attrib.vertices[vi * 3 + 1], attrib.vertices[vi * 3 + 2], 0.0f };
+			}
+
+			triangles.push_back(tri);
+		}
+	}
+
+	// debug(
+	glm::vec3 minBounds(1e30f);
+	glm::vec3 maxBounds(-1e30f);
+
+	for (const auto& tri : triangles) {
+		for (int k = 0; k < 3; k++) {
+			glm::vec3 v = glm::vec3(tri.v[k]);
+			minBounds = glm::min(minBounds, v);
+			maxBounds = glm::max(maxBounds, v);
+		}
+	}
+
+	glm::vec3 center = (minBounds + maxBounds) * 0.5f;
+	glm::vec3 extent = maxBounds - minBounds;
+
+	std::cout << "Model Min Bounds: (" << minBounds.x << ", " << minBounds.y << ", " << minBounds.z << ")\n";
+	std::cout << "Model Max Bounds: (" << maxBounds.x << ", " << maxBounds.y << ", " << maxBounds.z << ")\n";
+	std::cout << "Model Center: (" << center.x << ", " << center.y << ", " << center.z << ")\n";
+	std::cout << "Model Size: (" << extent.x << ", " << extent.y << ", " << extent.z << ")\n";
+	// )debug
+
+	return triangles;
 }

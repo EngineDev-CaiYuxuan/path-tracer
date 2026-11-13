@@ -2,6 +2,7 @@
 
 #include "utils.h"
 
+struct Triangle;
 
 class Render
 {
@@ -13,8 +14,9 @@ public:
 
 private:
 	void createStorageImage();
-
 	void createCameraUBO();
+	void createSceneInfoUBO();
+	void createTriangleBuffer();
 
 	void createDescriptorSetLayout();
 	void createDescriptorPool();
@@ -24,6 +26,9 @@ private:
 
 private:
 	void updateCameraUBO();
+
+private: // auxiliary
+	std::vector<Triangle> loadModel(const std::string& path);
 
 
 private:
@@ -43,10 +48,11 @@ private:
 	const std::vector<VkSemaphore>& renderFinishedSemaphores;
 	const std::vector<VkFence>& inFlightFences;
 
+
 private:
 	uint32_t currentFrame = 0;
 
-	void* cameraUBOMapped = nullptr;
+	std::vector<Triangle> triangles;
 
 	VkImage storageImage;
 	VkDeviceMemory storageImageMemory;
@@ -54,6 +60,13 @@ private:
 
 	VkBuffer cameraUBO;
 	VkDeviceMemory cameraUBOMemory;
+	void* cameraUBOMapped = nullptr;
+
+	VkBuffer sceneInfoUBO;
+	VkDeviceMemory sceneInfoUBOMemory;
+
+	VkBuffer triangleBuffer;
+	VkDeviceMemory triangleBufferMemory;
 
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkDescriptorPool descriptorPool;
@@ -71,4 +84,14 @@ struct CameraUBO
 	glm::vec4 camRight;
 	glm::vec4 camUp;
 	glm::vec4 params;
+};
+
+struct Triangle
+{
+	glm::vec4 v[3];
+};
+
+struct SceneInfo
+{
+	alignas(16) uint32_t triangleCount;
 };
