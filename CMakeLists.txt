@@ -73,20 +73,24 @@ if(NOT EXISTS ${SHADER_SRC})
     message(FATAL_ERROR "shader source not found: ${SHADER_SRC}")
 endif()
 
-add_custom_command(TARGET path_tracer POST_BUILD
+# ---- ∂¿¡¢±‡“Î Shader ----
+add_custom_target(compile_shaders ALL
     COMMAND ${CMAKE_COMMAND} -E make_directory
             $<TARGET_FILE_DIR:path_tracer>/assets/shaders
     COMMAND ${GLSL_COMPILER}
             ${SHADER_SRC}
             -o ${SHADER_OUT}
-    COMMENT "Compiling shader.comp -> comp.spv"
+    DEPENDS ${SHADER_SRC}
+    COMMENT "Compiling ${SHADER_SRC} -> comp.spv"
     VERBATIM
 )
+add_dependencies(path_tracer compile_shaders)
 
 # ---- øΩ±¥ƒ£–Õ ----
-add_custom_command(TARGET path_tracer POST_BUILD
+add_custom_target(copy_models ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory
             ${CMAKE_SOURCE_DIR}/assets/models
             $<TARGET_FILE_DIR:path_tracer>/assets/models
     COMMENT "Copying models to output directory"
 )
+add_dependencies(path_tracer copy_models)

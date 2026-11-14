@@ -111,7 +111,22 @@ void main() {
     vec3 color = vec3(0.0);
     if (hitInfo.isHit)
     {
-        color = hitInfo.normal * 0.5 + 0.5;
+        vec3 lightDir = normalize(vec3(-1.0, 1.0, -1.0)); 
+        vec3 lightColor = vec3(1.0, 1.0, 0.8);           
+        vec3 albedo = vec3(0.8, 0.8, 0.8);                
+
+        Ray shadowRay = {hitInfo.position + hitInfo.normal * 1e-4, lightDir};
+        HitInfo lightHit = traceScene(shadowRay);
+
+        if (lightHit.isHit == false)
+        {
+            float NdotL = dot(hitInfo.normal, lightDir);
+            color = albedo * lightColor * NdotL;
+        }
+        else
+        {
+            color = vec3(0.05); 
+        }
     }
 
 
