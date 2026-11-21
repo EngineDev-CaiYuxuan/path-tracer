@@ -153,6 +153,31 @@ void Render::cleanup()
 	vkFreeMemory(device, storageImageMemory, nullptr);
 }
 
+void Render::cleanupForRecreate()
+{
+	vkDestroyImageView(device, storageImageView, nullptr);
+	vkDestroyImage(device, storageImage, nullptr);
+	vkFreeMemory(device, storageImageMemory, nullptr);
+}
+
+void Render::recreate()
+{
+	createStorageImage();
+
+	VkDescriptorImageInfo imageInfo{};
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	imageInfo.imageView = storageImageView;
+
+	VkWriteDescriptorSet descriptorWrite{};
+	descriptorWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	descriptorWrite.dstSet = descriptorSets[0];
+	descriptorWrite.dstBinding = 0;
+	descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	descriptorWrite.descriptorCount = 1;
+	descriptorWrite.pImageInfo = &imageInfo;
+
+	vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+}
 
 // private:
 

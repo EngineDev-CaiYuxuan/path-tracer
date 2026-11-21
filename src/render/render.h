@@ -11,6 +11,8 @@ public:
 	void initialize();
 	void cleanup();
 	DrawFrameResult drawFrame();
+	void cleanupForRecreate();
+	void recreate();
 
 private:
 	void createStorageImage();

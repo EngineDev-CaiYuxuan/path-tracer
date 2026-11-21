@@ -91,10 +91,15 @@ void Application::recreateSwapChain()
 	//清理旧交换链
 	cleanupSwapChain();
 
+	render->cleanupForRecreate();
+
+
 	//重新创建调用函数
 	scm->createSwapChain();
 	scm->createImageViews();
 	rpm->createColorResources();
 	rpm->createDepthResources();
 	rpm->createFramebuffers();
+
+	render->recreate();
 }
