@@ -53,6 +53,7 @@ private:
 
 private:
 	uint32_t currentFrame = 0;
+	uint32_t frameCount = 0;
 
 	std::vector<Triangle> triangles;
 

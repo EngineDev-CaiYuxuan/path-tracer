@@ -2,9 +2,10 @@
 
 layout(local_size_x = 8, local_size_y = 8) in;
 
-layout(rgba8, binding = 0) uniform writeonly image2D outputImage;
+layout(rgba32f, binding = 0) uniform image2D outputImage;
 
-layout(binding = 1) uniform CameraBuffer{
+layout(binding = 1) uniform CameraBuffer
+{
     vec4 camPos;
     vec4 camForward;
     vec4 camRight;
@@ -12,24 +13,29 @@ layout(binding = 1) uniform CameraBuffer{
     vec4 params;
 } cam;
 
-layout(binding = 2) uniform SceneInfo{
+layout(binding = 2) uniform SceneInfo
+{
     uint triangleCount;
 } sceneInfo;
 
-struct Triangle{
+struct Triangle
+{
     vec4 v[3];
 };
 
-layout(binding = 3) readonly buffer TriangleBuffer{
+layout(binding = 3) readonly buffer TriangleBuffer
+{
     Triangle triangles[];
 };
 
-struct Ray{
+struct Ray
+{
     vec3 origin;
     vec3 dir;
 };
 
-struct HitInfo{
+struct HitInfo
+{
     bool isHit;
     float t;
     vec3 position;
@@ -54,7 +60,8 @@ float rand(inout uint seed)
 
 // 
 
-HitInfo intersectTriangle(Ray ray, vec3 v0, vec3 v1, vec3 v2){
+HitInfo intersectTriangle(Ray ray, vec3 v0, vec3 v1, vec3 v2)
+{
     HitInfo hitInfo;
     hitInfo.isHit = false;
     hitInfo.t = 1e30;
@@ -88,7 +95,8 @@ HitInfo intersectTriangle(Ray ray, vec3 v0, vec3 v1, vec3 v2){
     return hitInfo;
 }
 
-HitInfo traceScene(Ray ray) {
+HitInfo traceScene(Ray ray) 
+{
     HitInfo closest;
     closest.isHit = false;
     closest.t   = 1e30;
@@ -122,7 +130,9 @@ vec3 sampleCosineHemisphere(vec3 N, inout uint seed)
     return normalize(u * cos(phi) * sinTheta + v * sin(phi) * sinTheta + w * cosTheta);
 }
 
-void main() {
+
+void main()
+{
     ivec2 pixel = ivec2(gl_GlobalInvocationID.xy);
     ivec2 size = imageSize(outputImage);
     if (pixel.x >= size.x || pixel.y >= size.y) return;
@@ -140,11 +150,13 @@ void main() {
     vec3 dir = normalize(forwardMove + upMove + rightMove);
 
 
+    uint seed = uint(pixel.x) + uint(pixel.y) * uint(size.x) + frameIndex * 1920u * 1080u;
+    
     Ray ray = {cam.camPos.xyz, dir};
     const int MAX_DEPTH = 5;
     vec3 radiance = vec3(0.0);
     vec3 throughput = vec3(1.0);
-    uint seed = uint(pixel.x) + uint(pixel.y) * uint(size.x) + frameIndex * 1920u * 1080u;
+    
 
     for (int i = 0; i < MAX_DEPTH; i++)
     {
@@ -155,8 +167,9 @@ void main() {
             break;
         }
 
-        vec3 albedo = vec3(0.8, 0.8, 0.8);
-        vec3 lightDir = normalize(vec3(-1.0, 1.0, -1.0));
+        vec3 albedo = vec3(0.8);
+        vec3 pointLight = vec3(-30.0, 80.0, 60.0); 
+        vec3 lightDir = normalize(pointLight - hit.position);
 
         Ray shadowRay = { hit.position + hit.normal * 1e-4, lightDir };
         HitInfo shadowHit = traceScene(shadowRay);
@@ -181,7 +194,22 @@ void main() {
         ray.dir = sampleCosineHemisphere(hit.normal, seed);
     }
 
-    vec3 color = min(radiance, vec3(1.0));
+    radiance = min(radiance, vec3(1.0));
+
+
+    vec4 prevData = imageLoad(outputImage, pixel);
+    uint frameCount = uint(cam.params.z);
+
+    vec3 color;
+    if (frameCount == 0)
+    {
+        color = radiance;
+    }
+    else
+    {
+        vec3 prevColor = prevData.rgb;
+        color = (prevColor * float(frameCount) + radiance) / (frameCount + 1);
+    }
 
 
     imageStore(outputImage, pixel, vec4(color, 1.0));

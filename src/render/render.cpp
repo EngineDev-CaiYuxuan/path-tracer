@@ -126,6 +126,7 @@ DrawFrameResult Render::drawFrame()
 
 
 	currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+	frameCount += 1;
 
 	return out;
 }
@@ -158,6 +159,8 @@ void Render::cleanupForRecreate()
 	vkDestroyImageView(device, storageImageView, nullptr);
 	vkDestroyImage(device, storageImage, nullptr);
 	vkFreeMemory(device, storageImageMemory, nullptr);
+
+	frameCount = 0;
 }
 
 void Render::recreate()
@@ -217,10 +220,10 @@ void Render::createComputePipeline()
 
 void Render::createStorageImage()
 {
-	createImage(swapChainExtent.width, swapChainExtent.height, 1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R8G8B8A8_UNORM,
+	createImage(swapChainExtent.width, swapChainExtent.height, 1, VK_SAMPLE_COUNT_1_BIT, VK_FORMAT_R32G32B32A32_SFLOAT,
 		VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		storageImage, storageImageMemory, device, physicalDevice);
-	storageImageView = createImageView(device, storageImage, VK_FORMAT_R8G8B8A8_UNORM, VK_IMAGE_ASPECT_COLOR_BIT, 1);
+	storageImageView = createImageView(device, storageImage, VK_FORMAT_R32G32B32A32_SFLOAT, VK_IMAGE_ASPECT_COLOR_BIT, 1);
 }
 
 void Render::createCameraUBO()
@@ -477,7 +480,7 @@ void Render::updateCameraUBO()
 {
 	float fovTanHalf = std::tan(glm::radians(60.0f) * 0.5f);
 	float aspect = (float)swapChainExtent.width / (float)swapChainExtent.height;
-	uint32_t frameIndex = 0;
+	uint32_t frameIndex = frameCount;
 
 	CameraUBO ubo{};
 	ubo.camPos = glm::vec4(63.7f, 105.0f, 92.6f, 0.0f);
